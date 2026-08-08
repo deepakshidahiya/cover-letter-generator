@@ -1,6 +1,5 @@
-console.log("AI Cover Letter Generator: script loaded");
-
 const coverLetterForm = document.getElementById("cover-letter-form");
+let capturedFormData = null;
 
 const fields = [
   { id: "candidate-name", label: "Candidate Name" },
@@ -64,6 +63,5 @@ coverLetterForm.addEventListener("submit", (event) => {
     return;
   }
 
-  const formData = captureFormData();
-  console.log("Form data captured:", formData);
+  capturedFormData = captureFormData();
 });
