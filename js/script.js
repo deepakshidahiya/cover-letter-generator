@@ -1,4 +1,6 @@
 const coverLetterForm = document.getElementById("cover-letter-form");
+const outputSection = document.getElementById("cover-letter-output");
+const generatedLetterEl = document.getElementById("generated-letter");
 let capturedFormData = null;
 let generatedCoverLetter = null;
 
@@ -81,4 +83,7 @@ coverLetterForm.addEventListener("submit", (event) => {
 
   capturedFormData = captureFormData();
   generatedCoverLetter = generateCoverLetter(capturedFormData);
+
+  generatedLetterEl.textContent = generatedCoverLetter;
+  outputSection.hidden = false;
 });
