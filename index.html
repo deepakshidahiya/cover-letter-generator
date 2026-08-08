@@ -7,7 +7,37 @@
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-  <h1>AI Cover Letter Generator</h1>
+  <main class="page">
+    <h1>AI Cover Letter Generator</h1>
+
+    <form id="cover-letter-form" novalidate>
+      <div class="form-group">
+        <label for="candidate-name">Candidate Name</label>
+        <input type="text" id="candidate-name" name="candidateName" required />
+        <span class="error-message" id="candidate-name-error" aria-live="polite"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="job-role">Job Role</label>
+        <input type="text" id="job-role" name="jobRole" required />
+        <span class="error-message" id="job-role-error" aria-live="polite"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="target-company">Target Company</label>
+        <input type="text" id="target-company" name="targetCompany" required />
+        <span class="error-message" id="target-company-error" aria-live="polite"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="key-skills">Key Skills</label>
+        <textarea id="key-skills" name="keySkills" rows="4" required></textarea>
+        <span class="error-message" id="key-skills-error" aria-live="polite"></span>
+      </div>
+
+      <button type="submit">Generate Cover Letter</button>
+    </form>
+  </main>
 
   <script src="js/script.js"></script>
 </body>
