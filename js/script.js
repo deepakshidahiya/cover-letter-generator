@@ -1,5 +1,6 @@
 const coverLetterForm = document.getElementById("cover-letter-form");
 let capturedFormData = null;
+let generatedCoverLetter = null;
 
 const fields = [
   { id: "candidate-name", label: "Candidate Name" },
@@ -56,6 +57,21 @@ function captureFormData() {
   };
 }
 
+function generateCoverLetter(formData) {
+  const { candidateName, jobRole, targetCompany, keySkills } = formData;
+
+  return `Dear Hiring Manager,
+
+I am writing to express my interest in the ${jobRole} position at ${targetCompany}. My name is ${candidateName}, and I believe my background makes me a strong candidate for this role.
+
+Throughout my experience, I have developed strong skills in ${keySkills}. I am confident these skills would allow me to contribute effectively to your team at ${targetCompany}.
+
+I would welcome the opportunity to discuss how my background aligns with the needs of your team. Thank you for considering my application.
+
+Sincerely,
+${candidateName}`;
+}
+
 coverLetterForm.addEventListener("submit", (event) => {
   event.preventDefault();
 
@@ -64,4 +80,5 @@ coverLetterForm.addEventListener("submit", (event) => {
   }
 
   capturedFormData = captureFormData();
+  generatedCoverLetter = generateCoverLetter(capturedFormData);
 });
