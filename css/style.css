@@ -100,6 +100,22 @@ button[type="submit"]:hover {
   font-size: 1rem;
 }
 
+.copy-button {
+  margin-top: 16px;
+  padding: 10px 20px;
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: #2563eb;
+  background-color: #ffffff;
+  border: 1px solid #2563eb;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.copy-button:hover {
+  background-color: #eff6ff;
+}
+
 @media (max-width: 480px) {
   .page {
     padding: 16px 12px 32px;
@@ -115,5 +131,9 @@ button[type="submit"]:hover {
 
   .output-section {
     padding: 16px;
+  }
+
+  .copy-button {
+    width: 100%;
   }
 }

@@ -1,8 +1,10 @@
 const coverLetterForm = document.getElementById("cover-letter-form");
 const outputSection = document.getElementById("cover-letter-output");
 const generatedLetterEl = document.getElementById("generated-letter");
+const copyButton = document.getElementById("copy-button");
 let capturedFormData = null;
 let generatedCoverLetter = null;
+let copyFeedbackTimeoutId = null;
 
 const fields = [
   { id: "candidate-name", label: "Candidate Name" },
@@ -74,6 +76,14 @@ Sincerely,
 ${candidateName}`;
 }
 
+function showCopyFeedback(message) {
+  copyButton.textContent = message;
+  clearTimeout(copyFeedbackTimeoutId);
+  copyFeedbackTimeoutId = setTimeout(() => {
+    copyButton.textContent = "Copy to Clipboard";
+  }, 2000);
+}
+
 coverLetterForm.addEventListener("submit", (event) => {
   event.preventDefault();
 
@@ -85,5 +95,13 @@ coverLetterForm.addEventListener("submit", (event) => {
   generatedCoverLetter = generateCoverLetter(capturedFormData);
 
   generatedLetterEl.textContent = generatedCoverLetter;
+  copyButton.textContent = "Copy to Clipboard";
   outputSection.hidden = false;
+});
+
+copyButton.addEventListener("click", () => {
+  navigator.clipboard
+    .writeText(generatedCoverLetter)
+    .then(() => showCopyFeedback("Copied!"))
+    .catch(() => showCopyFeedback("Unable to copy. Please copy the text manually."));
 });
