@@ -61,21 +61,6 @@ function captureFormData() {
   };
 }
 
-function generateCoverLetter(formData) {
-  const { candidateName, jobRole, targetCompany, keySkills } = formData;
-
-  return `Dear Hiring Manager,
-
-I am writing to express my interest in the ${jobRole} position at ${targetCompany}. My name is ${candidateName}, and I believe my background makes me a strong candidate for this role.
-
-Throughout my experience, I have developed strong skills in ${keySkills}. I am confident these skills would allow me to contribute effectively to your team at ${targetCompany}.
-
-I would welcome the opportunity to discuss how my background aligns with the needs of your team. Thank you for considering my application.
-
-Sincerely,
-${candidateName}`;
-}
-
 function showCopyFeedback(message) {
   copyButton.textContent = message;
   clearTimeout(copyFeedbackTimeoutId);
@@ -84,7 +69,7 @@ function showCopyFeedback(message) {
   }, 2000);
 }
 
-coverLetterForm.addEventListener("submit", (event) => {
+coverLetterForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   if (!validateForm()) {
@@ -92,10 +77,29 @@ coverLetterForm.addEventListener("submit", (event) => {
   }
 
   capturedFormData = captureFormData();
-  generatedCoverLetter = generateCoverLetter(capturedFormData);
 
-  generatedLetterEl.textContent = generatedCoverLetter;
-  copyButton.textContent = "Copy to Clipboard";
+  try {
+    const response = await fetch("/api/generate-cover-letter", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(capturedFormData),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to generate cover letter.");
+    }
+
+    generatedCoverLetter = data.coverLetter;
+    generatedLetterEl.textContent = generatedCoverLetter;
+    copyButton.hidden = false;
+    copyButton.textContent = "Copy to Clipboard";
+  } catch {
+    generatedLetterEl.textContent = "We couldn't generate your cover letter right now. Please try again.";
+    copyButton.hidden = true;
+  }
+
   outputSection.hidden = false;
 });
 
