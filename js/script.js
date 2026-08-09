@@ -2,9 +2,11 @@ const coverLetterForm = document.getElementById("cover-letter-form");
 const outputSection = document.getElementById("cover-letter-output");
 const generatedLetterEl = document.getElementById("generated-letter");
 const copyButton = document.getElementById("copy-button");
+const generateButton = document.getElementById("generate-button");
 let capturedFormData = null;
 let generatedCoverLetter = null;
 let copyFeedbackTimeoutId = null;
+let isGenerating = false;
 
 const fields = [
   { id: "candidate-name", label: "Candidate Name" },
@@ -72,11 +74,15 @@ function showCopyFeedback(message) {
 coverLetterForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
-  if (!validateForm()) {
+  if (!validateForm() || isGenerating) {
     return;
   }
 
   capturedFormData = captureFormData();
+
+  isGenerating = true;
+  generateButton.disabled = true;
+  generateButton.textContent = "Generating...";
 
   try {
     const response = await fetch("/api/generate-cover-letter", {
@@ -96,8 +102,12 @@ coverLetterForm.addEventListener("submit", async (event) => {
     copyButton.hidden = false;
     copyButton.textContent = "Copy to Clipboard";
   } catch {
-    generatedLetterEl.textContent = "We couldn't generate your cover letter right now. Please try again.";
+    generatedLetterEl.textContent = "Unable to generate your cover letter right now. Please try again.";
     copyButton.hidden = true;
+  } finally {
+    isGenerating = false;
+    generateButton.disabled = false;
+    generateButton.textContent = "Generate Cover Letter";
   }
 
   outputSection.hidden = false;
