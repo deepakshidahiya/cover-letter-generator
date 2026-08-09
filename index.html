@@ -37,9 +37,17 @@
         <textarea id="key-skills" name="keySkills" rows="4" required></textarea>
         <span class="error-message" id="key-skills-error" aria-live="polite"></span>
       </div>
-
-      <button type="submit" id="generate-button">Generate Cover Letter</button>
     </form>
+
+    <section class="resume-upload">
+      <label for="resume-upload">Upload Resume (optional)</label>
+      <p class="field-hint">Attach a PDF resume to personalize your letter. PDF only, up to 5MB.</p>
+      <input type="file" id="resume-upload" />
+      <span class="error-message" id="resume-upload-error" aria-live="polite"></span>
+      <span class="upload-status" id="resume-upload-status" aria-live="polite"></span>
+    </section>
+
+    <button type="submit" form="cover-letter-form" id="generate-button">Generate Cover Letter</button>
 
     <section id="cover-letter-output" class="output-section" hidden>
       <h2>Generated Cover Letter</h2>

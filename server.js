@@ -1,6 +1,8 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
+const { PDFParse } = require("pdf-parse");
 
 try {
   process.loadEnvFile(path.join(__dirname, ".env"));
@@ -13,6 +15,29 @@ try {
 const PORT = process.env.PORT || 3000;
 const ROOT_DIR = __dirname;
 const GEMINI_MODEL = "gemini-3.6-flash";
+const MAX_RESUME_SIZE_BYTES = 5 * 1024 * 1024;
+const MAX_RESUME_TEXT_LENGTH = 6000;
+const RESUME_TTL_MS = 60 * 60 * 1000;
+
+const resumeStore = new Map();
+
+function getResumeText(resumeId) {
+  if (!resumeId) {
+    return null;
+  }
+
+  const entry = resumeStore.get(resumeId);
+  if (!entry) {
+    return null;
+  }
+
+  if (Date.now() - entry.createdAt > RESUME_TTL_MS) {
+    resumeStore.delete(resumeId);
+    return null;
+  }
+
+  return entry.text;
+}
 
 const MIME_TYPES = {
   ".html": "text/html",
@@ -54,13 +79,93 @@ function readRequestBody(req) {
   });
 }
 
-function buildCoverLetterPrompt({ candidateName, jobRole, targetCompany, keySkills }) {
+function readRequestBodyBuffer(req, maxBytes) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let totalBytes = 0;
+    let tooLarge = false;
+
+    req.on("data", (chunk) => {
+      totalBytes += chunk.length;
+      if (maxBytes && totalBytes > maxBytes) {
+        tooLarge = true;
+        return;
+      }
+      chunks.push(chunk);
+    });
+    req.on("end", () => {
+      if (tooLarge) {
+        reject(new Error("Payload too large"));
+        return;
+      }
+      resolve(Buffer.concat(chunks));
+    });
+    req.on("error", reject);
+  });
+}
+
+async function handleParseResume(req, res) {
+  let buffer;
+  try {
+    buffer = await readRequestBodyBuffer(req, MAX_RESUME_SIZE_BYTES);
+  } catch {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "File is missing or too large." }));
+    return;
+  }
+
+  if (!buffer || buffer.length === 0) {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "No file was uploaded." }));
+    return;
+  }
+
+  if (buffer.slice(0, 5).toString("utf8") !== "%PDF-") {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Uploaded file is not a valid PDF." }));
+    return;
+  }
+
+  let parser;
+  try {
+    parser = new PDFParse({ data: buffer });
+    const result = await parser.getText();
+
+    const extractedText = result.text.trim();
+    if (!extractedText) {
+      throw new Error("No extractable text found in PDF.");
+    }
+
+    const resumeId = crypto.randomUUID();
+    resumeStore.set(resumeId, {
+      text: extractedText.slice(0, MAX_RESUME_TEXT_LENGTH),
+      createdAt: Date.now(),
+    });
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ success: true, resumeId }));
+  } catch (err) {
+    console.error("Resume parsing failed:", err.message);
+    res.writeHead(422, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Unable to process this resume. Please try a different PDF." }));
+  } finally {
+    if (parser) {
+      await parser.destroy();
+    }
+  }
+}
+
+function buildCoverLetterPrompt({ candidateName, jobRole, targetCompany, keySkills, resumeText }) {
+  const resumeBlock = resumeText
+    ? `\n\nCandidate Resume (supporting context only; do not copy it verbatim, and never mention this resume or how it was processed):\n${resumeText}`
+    : "";
+
   return `You are writing a real job application cover letter. Write only the cover letter text with no extra output.
 
 Candidate Name: ${candidateName}
 Job Role: ${jobRole}
 Target Company: ${targetCompany}
-Key Skills: ${keySkills}
+Key Skills: ${keySkills}${resumeBlock}
 
 Requirements:
 - Write a professional cover letter suitable for a real job application.
@@ -97,12 +202,14 @@ async function handleGenerateCoverLetter(req, res) {
     return;
   }
 
-  const { candidateName, jobRole, targetCompany, keySkills } = formData || {};
+  const { candidateName, jobRole, targetCompany, keySkills, resumeId } = formData || {};
   if (!candidateName || !jobRole || !targetCompany || !keySkills) {
     res.writeHead(400, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ error: "All fields are required." }));
     return;
   }
+
+  const resumeText = getResumeText(resumeId);
 
   try {
     const geminiResponse = await fetch(
@@ -116,7 +223,7 @@ async function handleGenerateCoverLetter(req, res) {
         body: JSON.stringify({
           contents: [
             {
-              parts: [{ text: buildCoverLetterPrompt({ candidateName, jobRole, targetCompany, keySkills }) }],
+              parts: [{ text: buildCoverLetterPrompt({ candidateName, jobRole, targetCompany, keySkills, resumeText }) }],
             },
           ],
         }),
@@ -146,6 +253,11 @@ async function handleGenerateCoverLetter(req, res) {
 const server = http.createServer((req, res) => {
   if (req.method === "POST" && req.url === "/api/generate-cover-letter") {
     handleGenerateCoverLetter(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/parse-resume") {
+    handleParseResume(req, res);
     return;
   }
 

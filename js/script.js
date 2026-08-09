@@ -3,10 +3,16 @@ const outputSection = document.getElementById("cover-letter-output");
 const generatedLetterEl = document.getElementById("generated-letter");
 const copyButton = document.getElementById("copy-button");
 const generateButton = document.getElementById("generate-button");
+const resumeInput = document.getElementById("resume-upload");
+const resumeErrorEl = document.getElementById("resume-upload-error");
+const resumeStatusEl = document.getElementById("resume-upload-status");
 let capturedFormData = null;
 let generatedCoverLetter = null;
 let copyFeedbackTimeoutId = null;
 let isGenerating = false;
+let uploadedResumeId = null;
+
+const MAX_RESUME_SIZE_BYTES = 5 * 1024 * 1024;
 
 const fields = [
   { id: "candidate-name", label: "Candidate Name" },
@@ -71,6 +77,55 @@ function showCopyFeedback(message) {
   }, 2000);
 }
 
+resumeInput.addEventListener("change", async () => {
+  resumeErrorEl.textContent = "";
+  resumeStatusEl.textContent = "";
+
+  const file = resumeInput.files[0];
+
+  if (!file) {
+    resumeErrorEl.textContent = "Please select a resume file.";
+    return;
+  }
+
+  const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+  if (!isPdf) {
+    resumeErrorEl.textContent = "Please upload a PDF file.";
+    resumeInput.value = "";
+    return;
+  }
+
+  if (file.size > MAX_RESUME_SIZE_BYTES) {
+    resumeErrorEl.textContent = "File is too large. Please upload a PDF under 5MB.";
+    resumeInput.value = "";
+    return;
+  }
+
+  resumeInput.disabled = true;
+
+  try {
+    const response = await fetch("/api/parse-resume", {
+      method: "POST",
+      headers: { "Content-Type": "application/pdf" },
+      body: file,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || "Failed to process resume.");
+    }
+
+    uploadedResumeId = data.resumeId;
+    resumeStatusEl.textContent = `Resume uploaded successfully: ${file.name}`;
+  } catch {
+    resumeErrorEl.textContent = "Unable to process this resume. Please try a different PDF.";
+    resumeInput.value = "";
+  } finally {
+    resumeInput.disabled = false;
+  }
+});
+
 coverLetterForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
@@ -88,7 +143,7 @@ coverLetterForm.addEventListener("submit", async (event) => {
     const response = await fetch("/api/generate-cover-letter", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(capturedFormData),
+      body: JSON.stringify({ ...capturedFormData, resumeId: uploadedResumeId }),
     });
 
     const data = await response.json();

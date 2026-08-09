@@ -1,0 +1,25 @@
+{
+  "name": "5.sp4aicoverlettergenerator",
+  "version": "1.0.0",
+  "description": "A web app that generates a tailored, professional cover letter from a candidate's name, job role, target company, key skills, and an optional uploaded PDF resume, using the Google Gemini API.",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deepakshidahiya/cover-letter-generator.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/deepakshidahiya/cover-letter-generator/issues"
+  },
+  "homepage": "https://github.com/deepakshidahiya/cover-letter-generator#readme",
+  "dependencies": {
+    "pdf-parse": "^2.4.5"
+  }
+}
